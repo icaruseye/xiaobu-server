@@ -4,27 +4,20 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: '微信小程序 API',
+      title: 'API 文档',
       version: '1.0.0',
-      description: '微信小程序后端 API 文档',
+      description: 'API 接口文档'
     },
     servers: [
       {
         url: 'http://localhost:3000',
-        description: '开发服务器',
-      },
-    ],
-    components: {
-      securitySchemes: {
-        BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
-    },
+        description: '开发服务器'
+      }
+    ]
   },
-  apis: ['./src/routes/*.js'], // API 路由文件的位置
+  apis: ['./src/routes/*.js'] // 指定 API 路由文件的位置
 };
 
-module.exports = swaggerJsdoc(options); 
+const specs = swaggerJsdoc(options);
+
+module.exports = specs; 

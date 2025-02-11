@@ -7,6 +7,7 @@ const swaggerSpec = require('./config/swagger');
 const authRoutes = require('./routes/auth');
 const fabricRoutes = require('./routes/fabric');
 const uploadRoutes = require('./routes/upload'); // 引入上传路由
+const tagRoutes = require('./routes/tag');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/fabrics', fabricRoutes);
 app.use('/api/upload', uploadRoutes); // 注册上传路由
+app.use('/api/tags', tagRoutes);
 
 // 静态文件服务
 app.use('/uploads', express.static('uploads')); // 提供上传文件的访问
@@ -40,7 +42,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const HOST = '192.168.31.57'; // 替换为你的本地 IP 地址
+const HOST = '192.168.31.58'; // 替换为你的本地 IP 地址
 
 app.listen(PORT, HOST, () => {
   console.log(`服务器运行在 http://${HOST}:${PORT}`);

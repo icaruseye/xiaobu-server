@@ -60,6 +60,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
   const putExtra = new qiniu.form_up.PutExtra();
 
   formUploader.putFile(uploadToken, key, filePath, putExtra, (err, body, info) => {
+    console.log('进入上传方法')
     // 删除本地文件
     fs.unlinkSync(filePath);
 

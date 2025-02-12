@@ -7,6 +7,7 @@ const swaggerSpec = require('./config/swagger');
 const authRoutes = require('./routes/auth');
 const fabricRoutes = require('./routes/fabric');
 const uploadRoutes = require('./routes/upload'); // 引入上传路由
+const materialRoutes = require('./routes/material'); // 引入材质路由
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/auth', authRoutes);
 app.use('/api/fabrics', fabricRoutes);
 app.use('/api/upload', uploadRoutes); // 注册上传路由
+app.use('/api/materials', materialRoutes); // 注册材质路由
 
 // 静态文件服务
 app.use('/uploads', express.static('uploads')); // 提供上传文件的访问

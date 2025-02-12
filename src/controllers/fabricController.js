@@ -1,14 +1,39 @@
+const mongoose = require('mongoose'); // 引入 mongoose
 const Fabric = require('../models/fabric');
+const FabricUsage = require('../models/fabricUsage'); // 引入使用记录模型
 
 // 创建布料
 const createFabric = async (req, res) => {
   try {
-    const fabricData = {
-      ...req.body,
-      createdBy: req.user.userId
+    const { brandId, ...fabricData } = req.body;
+
+    // 验证 brandId 是否为有效的 ObjectId
+    if (!mongoose.Types.ObjectId.isValid(brandId)) {
+      return res.status(400).json({
+        code: 400001,
+        message: '无效的品牌ID'
+      });
+    }
+
+    const newFabricData = {
+      ...fabricData,
+      brandId: brandId, // 确保使用有效的 brandId
+      createdBy: req.user._id
     };
 
-    const fabric = await Fabric.create(fabricData);
+    const fabric = await Fabric.create(newFabricData);
+
+    // 检查 usedLength 是否存在且大于 0
+    if (req.body.usedLength && req.body.usedLength > 0) {
+      const usageData = {
+        fabricId: fabric._id, // 使用新创建的布料ID
+        usedLength: req.body.usedLength,
+        createdBy: req.user._id
+      };
+
+      // 创建使用记录
+      await FabricUsage.create(usageData);
+    }
 
     res.json({
       code: 200,
@@ -28,7 +53,7 @@ const createFabric = async (req, res) => {
 const updateFabric = async (req, res) => {
   try {
     const fabric = await Fabric.findOneAndUpdate(
-      { _id: req.params.id, createdBy: req.user.userId },
+      { _id: req.params.id, createdBy: req.user._id },
       req.body,
       { new: true }
     );
@@ -59,7 +84,7 @@ const getFabric = async (req, res) => {
   try {
     const fabric = await Fabric.findOne({
       _id: req.params.id,
-      createdBy: req.user.userId
+      createdBy: req.user._id
     });
 
     if (!fabric) {
@@ -90,7 +115,7 @@ const getFabrics = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // 构建查询条件
-    const query = { createdBy: req.user.userId };
+    const query = { createdBy: req.user._id };
     
     if (keyword) {
       query.$or = [
@@ -135,7 +160,7 @@ const toggleFavorite = async (req, res) => {
   try {
     const fabric = await Fabric.findOne({
       _id: req.params.id,
-      createdBy: req.user.userId
+      createdBy: req.user._id
     });
 
     if (!fabric) {
@@ -164,10 +189,39 @@ const toggleFavorite = async (req, res) => {
   }
 };
 
+// 删除布料
+const deleteFabric = async (req, res) => {
+  try {
+    const fabric = await Fabric.findOneAndDelete({
+      _id: req.params.id,
+      createdBy: req.user._id
+    });
+
+    if (!fabric) {
+      return res.status(404).json({
+        code: 404001,
+        message: '布料不存在或无权限删除'
+      });
+    }
+
+    res.json({
+      code: 200,
+      message: '删除成功'
+    });
+  } catch (error) {
+    console.error('删除布料失败:', error);
+    res.status(500).json({
+      code: 500002,
+      message: '删除布料失败'
+    });
+  }
+};
+
 module.exports = {
   createFabric,
   updateFabric,
   getFabric,
   getFabrics,
-  toggleFavorite
+  toggleFavorite,
+  deleteFabric
 }; 

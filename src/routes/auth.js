@@ -60,21 +60,6 @@ router.post('/login', authController.login);
 
 /**
  * @swagger
- * /api/auth/check-token:
- *   get:
- *     summary: 检查token是否有效
- *     tags: [Auth]
- *     parameters:
- *       - in: header
- *         name: Authorization
- *         schema:
- *           type: string
- *         description: Bearer token
- */
-router.get('/check-token', authController.checkToken);
-
-/**
- * @swagger
  * /api/auth/update-info:
  *   put:
  *     summary: 更新用户信息

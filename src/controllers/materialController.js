@@ -5,7 +5,7 @@ const createMaterial = async (req, res) => {
   try {
     const materialData = {
       name: req.body.name,
-      createdBy: req.user.userId
+      createdBy: req.user._id
     };
 
     const material = await Material.create(materialData);
@@ -29,7 +29,7 @@ const deleteMaterial = async (req, res) => {
   try {
     const material = await Material.findOneAndDelete({
       _id: req.params.id,
-      createdBy: req.user.userId
+      createdBy: req.user._id
     });
 
     if (!material) {
@@ -55,7 +55,7 @@ const deleteMaterial = async (req, res) => {
 // 获取用户的材质列表
 const getMaterials = async (req, res) => {
   try {
-    const materials = await Material.find({ createdBy: req.user.userId });
+    const materials = await Material.find({ createdBy: req.user._id });
 
     res.json({
       code: 200,

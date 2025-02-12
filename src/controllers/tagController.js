@@ -26,11 +26,7 @@ const createTag = async (req, res) => {
     res.json({
       code: 200,
       message: '创建成功',
-      data: {
-        id: tag._id,
-        name: tag.name,
-        createdAt: tag.createdAt
-      }
+      data: tag
     });
   } catch (error) {
     console.error('创建标签失败:', error);
@@ -49,11 +45,7 @@ const getTags = async (req, res) => {
 
     res.json({
       code: 200,
-      data: tags.map(tag => ({
-        id: tag._id,
-        name: tag.name,
-        createdAt: tag.createdAt
-      }))
+      data: tags
     });
   } catch (error) {
     console.error('获取标签失败:', error);

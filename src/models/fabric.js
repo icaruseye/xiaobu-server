@@ -8,7 +8,13 @@ const fabricSchema = new mongoose.Schema({
     trim: true
   },
   // 品牌信息
-  brand: {
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Brand',
+    required: true
+  },
+  // 品牌信息文本
+  brandText: {
     type: String,
     trim: true
   },
@@ -47,18 +53,26 @@ const fabricSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // 购买渠道
   purchaseChannel: {
     type: String,
     trim: true
   },
+  // 
   purchaseDate: {
     type: Date
   },
   // 材质信息
-  materials: [{
+  materialsId: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Material',
+    required: true
+  }],
+  // 材质信息文本
+  materialsText: {
     type: String,
     trim: true
-  }],
+  },
   // 图片信息
   coverImage: {
     type: String,
@@ -69,10 +83,16 @@ const fabricSchema = new mongoose.Schema({
     type: String
   }],
   // 标签和分类
-  tags: [{
+  tagsId: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Tag',
+    required: true
+  }],
+  // 标签和分类文本
+  tagsText: {
     type: String,
     trim: true
-  }],
+  },
   // 状态信息
   isFavorite: {
     type: Boolean,

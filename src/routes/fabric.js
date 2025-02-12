@@ -273,5 +273,35 @@ router.get('/', auth, fabricController.getFabrics);
  */
 router.put('/:id/favorite', auth, fabricController.toggleFavorite);
 
+/**
+ * @swagger
+ * /api/fabrics/{id}:
+ *   delete:
+ *     summary: 删除布料
+ *     tags: [布料]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: 删除成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: 删除成功
+ */
+router.delete('/:id', auth, fabricController.deleteFabric);
 
 module.exports = router; 

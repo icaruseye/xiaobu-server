@@ -99,7 +99,7 @@ const updateUserInfo = async (req, res) => {
     const { nickname, avatarUrl } = req.body;
     
     const user = await User.findByIdAndUpdate(
-      req.user.userId,
+      req.user._id,
       { 
         nickname, 
         avatarUrl,
@@ -127,66 +127,7 @@ const updateUserInfo = async (req, res) => {
   }
 };
 
-// 检查token是否有效
-const checkToken = async (req, res) => {
-  try {
-    // 从请求头获取token
-    const authHeader = req.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(400).json({ 
-        code: 400001,
-        message: 'token不存在',
-        valid: false 
-      })
-    }
-
-    const token = authHeader.split(' ')[1]
-    
-    try {
-      // 验证token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET)
-      
-      // 检查用户是否存在
-      const user = await User.findById(decoded.id)
-      if (!user || !user.isActive) {
-        return res.status(401).json({ 
-          code: 401002,
-          message: 'token已失效',
-          valid: false 
-        })
-      }
-
-      res.json({ 
-        code: 200,
-        message: 'token有效',
-        valid: true,
-        user: {
-          nickname: user.nickname,
-          avatarUrl: user.avatarUrl,
-          isMember: user.isMember,
-          memberExpiryDate: user.memberExpiryDate
-        }
-      })
-    } catch (error) {
-      // token验证失败
-      return res.status(401).json({ 
-        code: 401003,
-        message: 'token无效',
-        valid: false 
-      })
-    }
-  } catch (error) {
-    console.error('Token验证错误:', error)
-    res.status(500).json({ 
-      code: 500003,
-      message: '服务器错误',
-      valid: false 
-    })
-  }
-}
-
 module.exports = {
   login,
   updateUserInfo,
-  checkToken
 }; 

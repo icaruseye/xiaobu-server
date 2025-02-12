@@ -2,9 +2,26 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
+const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined in environment variables')
+  }
+  
+  // 从环境变量获取token有效期，如果未设置则默认24小时
+  const expiresIn = process.env.JWT_EXPIRES_IN || '24h'
+  
+  return jwt.sign(
+    { id: user._id, username: user.username },
+    process.env.JWT_SECRET,
+    { expiresIn }
+  )
+}
+
 const login = async (req, res) => {
   try {
     const { code } = req.body;
+
+    console.log('进入登录方法')
     
     // 请求微信接口获取openid和session_key
     const response = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
@@ -52,15 +69,7 @@ const login = async (req, res) => {
     }
 
     // 生成JWT令牌
-    const token = jwt.sign(
-      { 
-        userId: user._id,
-        openid: user.openid,
-        isNewUser: !user.nickname
-      }, 
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+    const token = generateToken(user);
 
     res.json({
       code: 200,
@@ -121,33 +130,60 @@ const updateUserInfo = async (req, res) => {
 // 检查token是否有效
 const checkToken = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
-    if (!user || !user.isActive) {
-      return res.status(401).json({ 
-        code: 401002,
-        message: 'token已失效',
+    // 从请求头获取token
+    const authHeader = req.headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(400).json({ 
+        code: 400001,
+        message: 'token不存在',
         valid: false 
-      });
+      })
     }
-    res.json({ 
-      code: 200,
-      message: 'token有效',
-      valid: true,
-      user: {
-        nickname: user.nickname,
-        avatarUrl: user.avatarUrl,
-        isMember: user.isMember,
-        memberExpiryDate: user.memberExpiryDate
+
+    const token = authHeader.split(' ')[1]
+    
+    try {
+      // 验证token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      
+      // 检查用户是否存在
+      const user = await User.findById(decoded.id)
+      if (!user || !user.isActive) {
+        return res.status(401).json({ 
+          code: 401002,
+          message: 'token已失效',
+          valid: false 
+        })
       }
-    });
+
+      res.json({ 
+        code: 200,
+        message: 'token有效',
+        valid: true,
+        user: {
+          nickname: user.nickname,
+          avatarUrl: user.avatarUrl,
+          isMember: user.isMember,
+          memberExpiryDate: user.memberExpiryDate
+        }
+      })
+    } catch (error) {
+      // token验证失败
+      return res.status(401).json({ 
+        code: 401003,
+        message: 'token无效',
+        valid: false 
+      })
+    }
   } catch (error) {
-    res.status(401).json({ 
-      code: 401003,
-      message: 'token验证失败',
+    console.error('Token验证错误:', error)
+    res.status(500).json({ 
+      code: 500003,
+      message: '服务器错误',
       valid: false 
-    });
+    })
   }
-};
+}
 
 module.exports = {
   login,

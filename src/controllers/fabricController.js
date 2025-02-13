@@ -10,8 +10,8 @@ const createFabric = async (req, res) => {
     // 将字符串 ID 转换为 ObjectId
     const objectIdBrandId = brandId ? new mongoose.Types.ObjectId(brandId) : null; // 品牌ID
     const objectIdPurchaseChannelId = purchaseChannelId ? new mongoose.Types.ObjectId(purchaseChannelId) : null; // 购买渠道ID
-    const objectIdMaterialsId = materialsId ? materialsId.split(',').map(id => new mongoose.Types.ObjectId(id)) : []; // 材质ID
-    const objectIdTagsId = tagsId ? tagsId.split(',').map(id => new mongoose.Types.ObjectId(id)) : []; // 标签ID
+    const objectIdMaterialsId = materialsId ? materialsId.map(id => new mongoose.Types.ObjectId(id)) : []; // 材质ID
+    const objectIdTagsId = tagsId ? tagsId.map(id => new mongoose.Types.ObjectId(id)) : []; // 标签ID
 
     const newFabricData = {
       ...fabricData,
@@ -160,7 +160,7 @@ const getFabrics = async (req, res) => {
     if (materialsId) {
       const materialsIdArray = materialsId.split(',').filter(id => mongoose.Types.ObjectId.isValid(id));
       if (materialsIdArray.length > 0) {
-        query.materialsId = { $all: materialsIdArray };
+        query.materialsId = { $in: materialsIdArray };
       }
     }
 
@@ -168,7 +168,7 @@ const getFabrics = async (req, res) => {
     if (tagsId) {
       const tagsIdArray = tagsId.split(',').filter(id => mongoose.Types.ObjectId.isValid(id));
       if (tagsIdArray.length > 0) {
-        query.tagsId = { $all: tagsIdArray };
+        query.tagsId = { $in: tagsIdArray };
       }
     }
 

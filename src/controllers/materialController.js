@@ -55,7 +55,7 @@ const deleteMaterial = async (req, res) => {
 // 获取用户的材质列表
 const getMaterials = async (req, res) => {
   try {
-    const materials = await Material.find({ createdBy: req.user._id });
+    const materials = await Material.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
 
     res.json({
       code: 200,

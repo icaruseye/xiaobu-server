@@ -11,6 +11,7 @@ const materialRoutes = require('./routes/material'); // 引入材质路由
 const tagRoutes = require('./routes/tag'); // 引入标签路由
 const brandRoutes = require('./routes/brand'); // 引入品牌路由
 const fabricUsageRoutes = require('./routes/fabricUsage'); // 引入布料使用记录路由
+const purchaseChannelRoutes = require('./routes/purchaseChannel');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/materials', materialRoutes); // 注册材质路由
 app.use('/api/tags', tagRoutes); // 注册标签路由
 app.use('/api/brands', brandRoutes); // 注册品牌路由
 app.use('/api/fabric-usage', fabricUsageRoutes); // 注册布料使用记录路由
+app.use('/api/purchase-channels', purchaseChannelRoutes);
 
 // 静态文件服务
 app.use('/uploads', express.static('uploads')); // 提供上传文件的访问

@@ -55,7 +55,7 @@ const deleteBrand = async (req, res) => {
 // 获取用户的品牌列表
 const getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find({ createdBy: req.user._id });
+    const brands = await Brand.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
 
     res.json({
       code: 200,

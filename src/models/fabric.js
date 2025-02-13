@@ -11,12 +11,12 @@ const fabricSchema = new mongoose.Schema({
   brandId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Brand',
-    required: true
+    required: false
   },
   // 品牌信息文本
   brandText: {
     type: String,
-    trim: true
+    trim: false
   },
   // 规格信息
   length: {
@@ -53,12 +53,7 @@ const fabricSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  // 购买渠道
-  purchaseChannel: {
-    type: String,
-    trim: true
-  },
-  // 
+  // 购买日期
   purchaseDate: {
     type: Date
   },
@@ -66,17 +61,17 @@ const fabricSchema = new mongoose.Schema({
   materialsId: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Material',
-    required: true
+    required: false
   }],
   // 材质信息文本
   materialsText: {
     type: String,
-    trim: true
+    trim: false
   },
   // 图片信息
   coverImage: {
     type: String,
-    required: true
+    required: false
   },
   // 详情图片
   detailImages: [{
@@ -86,12 +81,12 @@ const fabricSchema = new mongoose.Schema({
   tagsId: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tag',
-    required: true
+    required: false
   }],
   // 标签和分类文本
   tagsText: {
     type: String,
-    trim: true
+    trim: false
   },
   // 状态信息
   isFavorite: {
@@ -116,6 +111,17 @@ const fabricSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  // 购买渠道ID
+  purchaseChannelId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PurchaseChannel',
+    required: false
+  },
+  // 购买渠道文本
+  purchaseChannelText: {
+    type: String,
+    trim: false
   }
 }, {
   timestamps: true // 自动管理 createdAt 和 updatedAt

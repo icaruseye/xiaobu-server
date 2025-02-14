@@ -129,8 +129,8 @@ const getFabrics = async (req, res) => {
       tagsId,
       brandId,
       isUsed,
-      lengthRange,
-      remainingLengthRange,
+      lengthRange, // 长度范围（米）
+      remainingLengthRange, // 剩余长度范围（米）
       sortBy = 'createdAt',
       sortOrder = 'desc',
       purchaseChannelId,
@@ -138,183 +138,182 @@ const getFabrics = async (req, res) => {
     
     const skip = (page - 1) * limit;
 
-    // 构建查询条件
-    const query = { createdBy: req.user._id };
-    
+    // 构建聚合管道
+    const pipeline = [];
+
+    // 匹配当前用户
+    pipeline.push({ $match: { createdBy: new mongoose.Types.ObjectId(req.user._id) } });
+
     // 关键词搜索
     if (keyword) {
-      query.$or = [
-        { name: new RegExp(keyword, 'i') },
-        { brandText: new RegExp(keyword, 'i') },
-        { materialsText: new RegExp(keyword, 'i') },
-        { tagsText: new RegExp(keyword, 'i') }
-      ];
+      pipeline.push({
+        $match: {
+          $or: [
+            { name: new RegExp(keyword, 'i') },
+            { brandText: new RegExp(keyword, 'i') },
+            { materialsText: new RegExp(keyword, 'i') },
+            { tagsText: new RegExp(keyword, 'i') }
+          ]
+        }
+      });
     }
 
     // 收藏筛选
     if (favorite === 'true') {
-      query.isFavorite = true;
+      pipeline.push({ $match: { isFavorite: true } });
     }
 
-    // 材质筛选（支持多个）
+    // 材质筛选
     if (materialsId) {
       const materialsIdArray = materialsId.split(',').filter(id => mongoose.Types.ObjectId.isValid(id));
       if (materialsIdArray.length > 0) {
-        query.materialsId = { $in: materialsIdArray };
+        pipeline.push({ 
+          $match: { 
+            materialsId: { 
+              $in: materialsIdArray.map(id => new mongoose.Types.ObjectId(id)) 
+            } 
+          } 
+        });
       }
     }
 
-    // 标签筛选（支持多个）
+    // 标签筛选
     if (tagsId) {
       const tagsIdArray = tagsId.split(',').filter(id => mongoose.Types.ObjectId.isValid(id));
       if (tagsIdArray.length > 0) {
-        query.tagsId = { $in: tagsIdArray };
+        pipeline.push({ 
+          $match: { 
+            tagsId: { 
+              $in: tagsIdArray.map(id => new mongoose.Types.ObjectId(id)) 
+            } 
+          } 
+        });
       }
     }
 
-    // 品牌筛选（支持多个）
+    // 品牌筛选
     if (brandId) {
       const brandIdArray = brandId.split(',').filter(id => mongoose.Types.ObjectId.isValid(id));
       if (brandIdArray.length > 0) {
-        query.brandId = { $in: brandIdArray }; // 使用 $in 表示满足其中任一品牌即可
+        pipeline.push({ 
+          $match: { 
+            brandId: { 
+              $in: brandIdArray.map(id => new mongoose.Types.ObjectId(id)) 
+            } 
+          } 
+        });
       }
     }
 
     // 使用状态筛选
     if (isUsed === 'true') {
-      query.usedLength = { $gt: 0 };
+      pipeline.push({ $match: { usedLength: { $gt: 0 } } });
     } else if (isUsed === 'false') {
-      query.usedLength = 0;
+      pipeline.push({ $match: { usedLength: 0 } });
     }
 
-    // 长度范围筛选
+    // 添加计算字段
+    pipeline.push({
+      $addFields: {
+        lengthInMeters: {
+          $cond: {
+            if: { $eq: ['$lengthUnit', '米'] },
+            then: '$length',
+            else: { $multiply: ['$length', 0.9144] }
+          }
+        },
+        remainingLengthInMeters: {
+          $cond: {
+            if: { $eq: ['$lengthUnit', '米'] },
+            then: { $subtract: ['$length', { $ifNull: ['$usedLength', 0] }] },
+            else: { 
+              $multiply: [
+                { $subtract: ['$length', { $ifNull: ['$usedLength', 0] }] },
+                0.9144
+              ]
+            }
+          }
+        }
+      }
+    });
+
+    // 长度范围筛选（米）
     if (lengthRange) {
-      switch (lengthRange) {
-        case '0-1':
-          query.length = { $gte: 0, $lte: 1 };
-          break;
-        case '1-3':
-          query.length = { $gte: 1, $lte: 3 };
-          break;
-        case '3-5':
-          query.length = { $gte: 3, $lte: 5 };
-          break;
-        case '5-10':
-          query.length = { $gte: 5, $lte: 10 };
-          break;
-        case '10+':
-          query.length = { $gte: 10 };
-          break;
+      const ranges = {
+        '0-1': { $match: { lengthInMeters: { $gte: 0, $lte: 1 } } },
+        '1-3': { $match: { lengthInMeters: { $gt: 1, $lte: 3 } } },
+        '3-5': { $match: { lengthInMeters: { $gt: 3, $lte: 5 } } },
+        '5-10': { $match: { lengthInMeters: { $gt: 5, $lte: 10 } } },
+        '10+': { $match: { lengthInMeters: { $gt: 10 } } }
+      };
+      if (ranges[lengthRange]) {
+        pipeline.push(ranges[lengthRange]);
       }
     }
 
-    // 剩余长度范围筛选
+    // 剩余长度范围筛选（米）
     if (remainingLengthRange) {
-      switch (remainingLengthRange) {
-        case '0-1':
-          query.$expr = {
-            $and: [
-              { $gte: [{ $subtract: ['$length', '$usedLength'] }, 0] },
-              { $lte: [{ $subtract: ['$length', '$usedLength'] }, 1] }
-            ]
-          };
-          break;
-        case '1-3':
-          query.$expr = {
-            $and: [
-              { $gt: [{ $subtract: ['$length', '$usedLength'] }, 1] },
-              { $lte: [{ $subtract: ['$length', '$usedLength'] }, 3] }
-            ]
-          };
-          break;
-        case '3-5':
-          query.$expr = {
-            $and: [
-              { $gt: [{ $subtract: ['$length', '$usedLength'] }, 3] },
-              { $lte: [{ $subtract: ['$length', '$usedLength'] }, 5] }
-            ]
-          };
-          break;
-        case '5-10':
-          query.$expr = {
-            $and: [
-              { $gt: [{ $subtract: ['$length', '$usedLength'] }, 5] },
-              { $lte: [{ $subtract: ['$length', '$usedLength'] }, 10] }
-            ]
-          };
-          break;
-        case '10+':
-          query.$expr = {
-            $gt: [{ $subtract: ['$length', '$usedLength'] }, 10]
-          };
-          break;
+      const ranges = {
+        '0-1': { $match: { remainingLengthInMeters: { $gte: 0, $lte: 1 } } },
+        '1-3': { $match: { remainingLengthInMeters: { $gt: 1, $lte: 3 } } },
+        '3-5': { $match: { remainingLengthInMeters: { $gt: 3, $lte: 5 } } },
+        '5-10': { $match: { remainingLengthInMeters: { $gt: 5, $lte: 10 } } },
+        '10+': { $match: { remainingLengthInMeters: { $gt: 10 } } }
+      };
+      if (ranges[remainingLengthRange]) {
+        pipeline.push(ranges[remainingLengthRange]);
       }
     }
 
-    // 购买渠道筛选（支持多个）
+    // 购买渠道筛选
     if (purchaseChannelId) {
       const channelIdArray = purchaseChannelId.split(',').filter(id => mongoose.Types.ObjectId.isValid(id));
       if (channelIdArray.length > 0) {
-        query.purchaseChannelId = { $in: channelIdArray };
+        pipeline.push({ 
+          $match: { 
+            purchaseChannelId: { 
+              $in: channelIdArray.map(id => new mongoose.Types.ObjectId(id)) 
+            } 
+          } 
+        });
       }
     }
 
-    // 构建排序条件
-    let sort = {};
-    
-    // 处理特殊的排序字段
+    // 获取总数
+    const countPipeline = [...pipeline];
+    const countResult = await Fabric.aggregate([...countPipeline, { $count: 'total' }]);
+    const total = countResult[0]?.total || 0;
+
+    // 排序
     if (sortBy === 'remainingLength') {
-      // 按剩余长度排序需要特殊处理，因为它是一个计算字段
-      sort = { 
-        $sort: { 
-          $subtract: ['$length', '$usedLength'] // 计算剩余长度
-        }
-      };
+      pipeline.push({ $sort: { remainingLengthInMeters: sortOrder === 'asc' ? 1 : -1 } });
+    } else if (sortBy === 'length') {
+      pipeline.push({ $sort: { lengthInMeters: sortOrder === 'asc' ? 1 : -1 } });
     } else {
-      // 其他字段直接排序
-      const validSortFields = ['createdAt', 'updatedAt', 'length', 'width', 'price'];
+      const validSortFields = ['createdAt', 'updatedAt', 'width', 'price'];
       if (validSortFields.includes(sortBy)) {
-        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        const sortObj = {};
+        sortObj[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        pipeline.push({ $sort: sortObj });
       } else {
-        // 默认按创建时间降序
-        sort.createdAt = -1;
+        pipeline.push({ $sort: { createdAt: -1 } });
       }
     }
+
+    // 分页
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: Number(limit) });
 
     // 执行查询
-    const total = await Fabric.countDocuments(query);
-    
-    let list;
-    if (sortBy === 'remainingLength') {
-      // 使用聚合管道处理剩余长度排序
-      list = await Fabric.aggregate([
-        { $match: query },
-        {
-          $addFields: {
-            remainingLength: { $subtract: ['$length', '$usedLength'] }
-          }
-        },
-        { $sort: { remainingLength: sortOrder === 'asc' ? 1 : -1 } },
-        { $skip: skip },
-        { $limit: Number(limit) }
-      ]).exec();
-      
-      // 手动填充关联数据
-      await Fabric.populate(list, [
-        { path: 'brandId', select: 'name' },
-        { path: 'materialsId', select: 'name' },
-        { path: 'tagsId', select: 'name' }
-      ]);
-    } else {
-      // 普通字段排序
-      list = await Fabric.find(query)
-        .populate('brandId', 'name')
-        .populate('materialsId', 'name')
-        .populate('tagsId', 'name')
-        .sort(sort)
-        .skip(skip)
-        .limit(Number(limit));
-    }
+    const list = await Fabric.aggregate(pipeline);
+
+    // 填充关联数据
+    await Fabric.populate(list, [
+      { path: 'brandId', select: 'name' },
+      { path: 'materialsId', select: 'name' },
+      { path: 'tagsId', select: 'name' },
+      { path: 'purchaseChannelId', select: 'name' }
+    ]);
 
     res.json({
       code: 200,
@@ -408,17 +407,39 @@ const getFabricStats = async (req, res) => {
           createdBy: new mongoose.Types.ObjectId(req.user._id) 
         } 
       },
+      // 添加计算字段
+      {
+        $addFields: {
+          lengthInMeters: {
+            $cond: {
+              if: { $eq: ['$lengthUnit', '米'] },
+              then: '$length',
+              else: { $multiply: ['$length', 0.9144] }
+            }
+          },
+          remainingLengthInMeters: {
+            $cond: {
+              if: { $eq: ['$lengthUnit', '米'] },
+              then: { $subtract: ['$length', { $ifNull: ['$usedLength', 0] }] },
+              else: { 
+                $multiply: [
+                  { $subtract: ['$length', { $ifNull: ['$usedLength', 0] }] },
+                  0.9144
+                ]
+              }
+            }
+          }
+        }
+      },
       // 计算统计数据
       {
         $group: {
           _id: null,
           totalCount: { $sum: 1 }, // 布料总数量
-          totalLength: { $sum: '$length' }, // 总长度
+          totalLength: { $sum: '$lengthInMeters' }, // 总长度（米）
           totalUsedLength: { $sum: '$usedLength' }, // 总使用长度
           totalValue: { $sum: '$price' }, // 总价值
-          remainingLength: { 
-            $sum: { $subtract: ['$length', '$usedLength'] } 
-          } // 剩余总长度
+          remainingLength: { $sum: '$remainingLengthInMeters' } // 剩余总长度（米）
         }
       },
       // 格式化输出

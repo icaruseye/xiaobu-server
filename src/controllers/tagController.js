@@ -40,11 +40,21 @@ const createTag = async (req, res) => {
 // 获取用户的所有标签
 const getTags = async (req, res) => {
   try {
-    const tags = await Tag.find({ creator: req.user._id })
-      .sort({ createdAt: -1 });
+    const { keyword } = req.query;
+    
+    // 构建查询条件
+    const query = { creator: req.user._id };
+    
+    // 添加关键词搜索
+    if (keyword) {
+      query.name = new RegExp(keyword, 'i');
+    }
+
+    const tags = await Tag.find(query).sort({ createdAt: -1 });
 
     res.json({
       code: 200,
+      message: '获取成功',
       data: tags
     });
   } catch (error) {

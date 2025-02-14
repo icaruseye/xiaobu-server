@@ -55,7 +55,17 @@ const deletePurchaseChannel = async (req, res) => {
 // 获取用户的购买渠道列表
 const getPurchaseChannels = async (req, res) => {
   try {
-    const channels = await PurchaseChannel.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    const { keyword } = req.query;
+    
+    // 构建查询条件
+    const query = { createdBy: req.user._id };
+    
+    // 添加关键词搜索
+    if (keyword) {
+      query.name = new RegExp(keyword, 'i');
+    }
+
+    const channels = await PurchaseChannel.find(query).sort({ createdAt: -1 });
 
     res.json({
       code: 200,

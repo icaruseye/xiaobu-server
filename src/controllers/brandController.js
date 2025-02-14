@@ -55,7 +55,17 @@ const deleteBrand = async (req, res) => {
 // 获取用户的品牌列表
 const getBrands = async (req, res) => {
   try {
-    const brands = await Brand.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    const { keyword } = req.query;
+    
+    // 构建查询条件
+    const query = { createdBy: req.user._id };
+    
+    // 添加关键词搜索
+    if (keyword) {
+      query.name = new RegExp(keyword, 'i');
+    }
+
+    const brands = await Brand.find(query).sort({ createdAt: -1 });
 
     res.json({
       code: 200,
